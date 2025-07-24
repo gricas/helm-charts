@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "n8n.fullname" . }}-config
+  labels:
+    {{- include "n8n.labels" . | nindent 4 }}
+data:
+  WEBHOOK_URL: {{ .Values.n8n.webhookUrl | quote }}
+  N8N_HOST: {{ .Values.n8n.webhookUrl | regexFind "://([^:/]+)" | regexReplaceAll "://" "" | quote }}
+  N8N_PORT: "5678"
+  N8N_PROTOCOL: {{ .Values.n8n.webhookUrl | regexFind "^[^:]+" | quote }}
+  GENERIC_TIMEZONE: {{ .Values.n8n.timezone | quote }}
+  {{- if eq .Values.n8n.database.type "postgresdb" }}
+  DB_TYPE: "postgresdb"
+  DB_POSTGRESDB_HOST: {{ .Values.n8n.database.host | quote }}
+  DB_POSTGRESDB_PORT: {{ .Values.n8n.database.port | quote }}
+  DB_POSTGRESDB_DATABASE: {{ .Values.n8n.database.database | quote }}
+  DB_POSTGRESDB_USER: {{ .Values.n8n.database.username | quote }}
+  {{- end }}

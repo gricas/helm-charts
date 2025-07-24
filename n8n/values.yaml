@@ -1,0 +1,107 @@
+# Default values for n8n
+replicaCount: 1
+
+image:
+  repository: n8nio/n8n
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: NodePort
+  port: 5678
+  targetPort: 5678
+  nodePort: 30678
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: n8n.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  mountPath: /home/node/.n8n
+
+n8n:
+  # Webhook URL for external access
+  webhookUrl: "http://n8n.local:$NODEPORT"
+  
+  n8n_secure_cookie: false
+  n8n_host: n8n.local
+  n8n_port: 5678
+  n8n_protocol: http
+
+  # Database configuration
+  database:
+    type: "sqlite"
+    # For PostgreSQL:
+    # type: "postgresdb"
+    # host: "postgresql"
+    # port: 5432
+    # database: "n8n"
+    # username: "n8n"
+    # password: "password"
+  
+  # Timezone
+  timezone: "UTC"
+  
+  # Additional environment variables
+  extraEnvVars: []
+  # - name: N8N_LOG_LEVEL
+  #   value: "debug"
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1024Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# PostgreSQL dependency (optional)
+postgresql:
+  enabled: false
+  auth:
+    postgresPassword: "n8npassword"
+    database: "n8n"
+    username: "n8n"
+    password: "n8npassword"
