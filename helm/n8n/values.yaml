@@ -1,8 +1,12 @@
 # Default values for n8n
 replicaCount: 1
 
+# Namespace to deploy to (leave empty for default namespace)
+namespace: ""
+
 image:
-  repository: n8nio/n8n
+  repository: docker.n8n.io/n8nio/n8n
+
   pullPolicy: IfNotPresent
   tag: "latest"
 
