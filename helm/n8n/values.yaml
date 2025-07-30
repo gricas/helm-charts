@@ -77,8 +77,6 @@ n8n:
   
   # Additional environment variables
   extraEnvVars: []
-  # - name: N8N_LOG_LEVEL
-  #   value: "debug"
 
 # Resource limits and requests
 resources:
