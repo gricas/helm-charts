@@ -48,15 +48,15 @@ spec:
                   name: {{ include "n8n.fullname" . }}-secret
                   key: db-password
             {{- end }}
+            {{- if .Values.n8n.extraEnvVars }}
+            {{- range .Values.n8n.extraEnvVars }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "n8n.fullname" . }}-config
-          {{- if .Values.n8n.extraEnvVars }}
-          {{- range .Values.n8n.extraEnvVars }}
-            - name: {{ .name }}
-              value: {{ .value | quote }}
-          {{- end }}
-          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.persistence.enabled }}
