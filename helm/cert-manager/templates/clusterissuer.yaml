@@ -1,0 +1,107 @@
+{{/*
+ClusterIssuers for Let's Encrypt with Route53 DNS-01 challenge
+Creates both staging and production issuers based on configuration
+*/}}
+{{- if .Values.clusterIssuers.email }}
+
+{{- if .Values.clusterIssuers.staging.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.clusterIssuers.staging.name }}
+  labels:
+    {{- include "cert-manager.labels" . | nindent 4 }}
+    cert-manager.io/issuer-type: staging
+spec:
+  acme:
+    # ACME staging server URL
+    server: {{ .Values.clusterIssuers.staging.server }}
+    
+    # Email for ACME registration
+    email: {{ .Values.clusterIssuers.email }}
+    
+    # Private key secret for ACME account
+    privateKeySecretRef:
+      name: {{ .Values.clusterIssuers.staging.name }}-private-key
+    
+    # DNS-01 challenge solver using Route53
+    solvers:
+    - dns01:
+        route53:
+          region: {{ .Values.clusterIssuers.route53.region }}
+          {{- if .Values.clusterIssuers.route53.hostedZoneID }}
+          hostedZoneID: {{ .Values.clusterIssuers.route53.hostedZoneID }}
+          {{- end }}
+          {{- if .Values.clusterIssuers.route53.roleArn }}
+          # IRSA authentication
+          role: {{ .Values.clusterIssuers.route53.roleArn }}
+          {{- else if .Values.clusterIssuers.route53.accessKeyID }}
+          # Direct access key authentication
+          accessKeyID: {{ .Values.clusterIssuers.route53.accessKeyID }}
+          secretAccessKeySecretRef:
+            name: {{ .Values.clusterIssuers.secretRef.name }}
+            key: {{ .Values.clusterIssuers.secretRef.secretKey | default "secret-access-key" }}
+          {{- else }}
+          # Secret-based authentication (both keys in secret)
+          accessKeyIDSecretRef:
+            name: {{ .Values.clusterIssuers.secretRef.name }}
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKeySecretRef:
+            name: {{ .Values.clusterIssuers.secretRef.name }}
+            key: AWS_SECRET_ACCESS_KEY
+          {{- end }}
+{{- end }}
+
+{{- if .Values.clusterIssuers.production.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.clusterIssuers.production.name }}
+  labels:
+    {{- include "cert-manager.labels" . | nindent 4 }}
+    cert-manager.io/issuer-type: production
+spec:
+  acme:
+    # ACME production server URL
+    server: {{ .Values.clusterIssuers.production.server }}
+    
+    # Email for ACME registration
+    email: {{ .Values.clusterIssuers.email }}
+    
+    # Private key secret for ACME account
+    privateKeySecretRef:
+      name: {{ .Values.clusterIssuers.production.name }}-private-key
+    
+    # DNS-01 challenge solver using Route53
+    solvers:
+    - dns01:
+        route53:
+          region: {{ .Values.clusterIssuers.route53.region }}
+          {{- if .Values.clusterIssuers.route53.hostedZoneID }}
+          hostedZoneID: {{ .Values.clusterIssuers.route53.hostedZoneID }}
+          {{- end }}
+          {{- if .Values.clusterIssuers.route53.roleArn }}
+          # IRSA authentication
+          role: {{ .Values.clusterIssuers.route53.roleArn }}
+          {{- else if .Values.clusterIssuers.route53.accessKeyID }}
+          # Direct access key authentication
+          accessKeyID: {{ .Values.clusterIssuers.route53.accessKeyID }}
+          secretAccessKeySecretRef:
+            name: {{ .Values.clusterIssuers.secretRef.name }}
+            key: {{ .Values.clusterIssuers.secretRef.secretKey | default "secret-access-key" }}
+          {{- else }}
+          # Secret-based authentication (both keys in secret)
+          accessKeyIDSecretRef:
+            name: {{ .Values.clusterIssuers.secretRef.name }}
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKeySecretRef:
+            name: {{ .Values.clusterIssuers.secretRef.name }}
+            key: AWS_SECRET_ACCESS_KEY
+          {{- end }}
+{{- end }}
+
+{{- else }}
+{{- fail "ClusterIssuers require email to be configured" }}
+{{- end }}
