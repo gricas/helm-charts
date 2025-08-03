@@ -1,0 +1,49 @@
+# Example values for cert-manager chart with Route53 DNS-01 challenge
+# Copy this file and modify the values according to your setup
+
+clusterIssuers:
+  # REQUIRED: Email address for ACME registration
+  email: "your-email@example.com"
+  
+  # Staging issuer (for testing)
+  staging:
+    enabled: true
+    name: "letsencrypt-staging"
+    server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+  
+  # Production issuer
+  production:
+    enabled: true
+    name: "letsencrypt-prod"
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+  
+  # Route53 DNS-01 challenge configuration
+  route53:
+    region: "us-east-1"
+    # Optional: Specify hosted zone ID for faster lookups
+    hostedZoneID: "Z1234567890ABC"
+    
+    # Option 1: Use IAM role ARN for IRSA authentication (recommended for EKS)
+    roleArn: "arn:aws:iam::123456789012:role/cert-manager-route53"
+    
+    # Option 2: Use direct access key ID (not recommended for production)
+    # accessKeyID: "AKIA..."
+  
+  # Secret reference for AWS credentials (only needed if not using IRSA)
+  secretRef:
+    name: "route53-credentials"
+    secretKey: "secret-access-key"
+
+# cert-manager subchart configuration
+cert-manager:
+  namespace: cert-manager
+  
+  # Enable Prometheus monitoring
+  prometheus:
+    enabled: true
+    podmonitor:
+      enabled: true
+  
+  # Enable CRD installation
+  crds:
+    enabled: true

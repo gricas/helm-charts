@@ -1,0 +1,40 @@
+cert-manager:
+  namespace: cert-manager
+
+  prometheus:
+    enabled: true
+    podmonitor:
+      enabled: true
+
+
+# ClusterIssuer configuration for Let's Encrypt
+clusterIssuers:
+  # Email address for ACME registration (required)
+  email: ""
+
+  # Staging issuer configuration
+  staging:
+    enabled: true
+    name: "letsencrypt-staging"
+    server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+  # Production issuer configuration
+  production:
+    enabled: true
+    name: "letsencrypt-prod"
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+
+  # Route53 DNS-01 challenge configuration
+  route53:
+    region: "us-east-1"
+    # Optional: Specify hosted zone ID
+    hostedZoneID: ""
+    # Optional: Use IAM role ARN for IRSA authentication
+    roleArn: ""
+    # Optional: Direct access key ID (not recommended for production)
+    accessKeyID: ""
+
+  # Secret reference for AWS credentials
+  secretRef:
+    name: "route53-credentials"
+    secretKey: "secret-access-key"
