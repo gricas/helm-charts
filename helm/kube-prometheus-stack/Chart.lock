@@ -13,6 +13,6 @@ dependencies:
   version: 9.2.10
 - name: prometheus-windows-exporter
   repository: https://prometheus-community.github.io/helm-charts
-  version: 0.11.0
-digest: sha256:66630d7ba7a581a726148a9c289301c70f346095515fe1a87d25726d4cbfe05c
-generated: "2025-07-18T15:00:35.238433505Z"
+  version: 0.11.2
+digest: sha256:4cda21aa901104fecb9901ea702f7702a1d9541d1fdceadfce14f5efb2746e88
+generated: "2025-08-04T01:20:47.823337021-05:00"
