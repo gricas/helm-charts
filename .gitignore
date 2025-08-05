@@ -5,3 +5,4 @@
 grafana*
 sonarQube
 echo
+*.un~
