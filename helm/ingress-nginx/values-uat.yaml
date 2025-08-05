@@ -1,0 +1,15 @@
+# Default values for tls-ingress
+
+# ingress-nginx configuration  
+ingress-nginx:
+  enabled: true
+
+  namespace: ingress-nginx
+  
+  controller:
+    kind: DaemonSet
+    # Enable metrics for monitoring
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true

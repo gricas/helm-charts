@@ -1,0 +1,297 @@
+name: Helm Chart Dependency Check
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC to check for dependency updates
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'helm/**/Chart.yaml'
+      - 'helm/**/Chart.lock'
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - cert-manager
+          - ingress-nginx
+          - kube-prometheus-stack
+          - n8n
+          - grafana-prometheus-stack
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+
+      - name: Check chart exists
+        id: check-chart
+        run: |
+          if [[ -f "helm/${{ matrix.chart }}/Chart.yaml" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Analyze dependencies
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          echo "# Dependency Analysis for ${{ matrix.chart }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ -f "Chart.yaml" ]]; then
+            deps_count=$(yq '.dependencies // [] | length' Chart.yaml)
+            if [[ "$deps_count" -gt 0 ]]; then
+              echo "## Current Dependencies" >> $GITHUB_STEP_SUMMARY
+              echo "| Name | Version | Repository | Status |" >> $GITHUB_STEP_SUMMARY
+              echo "|------|---------|------------|--------|" >> $GITHUB_STEP_SUMMARY
+              
+              # Check each dependency
+              while IFS= read -r line; do
+                if [[ -n "$line" ]]; then
+                  dep_name=$(echo "$line" | yq '.name')
+                  dep_version=$(echo "$line" | yq '.version')
+                  dep_repo=$(echo "$line" | yq '.repository')
+                  
+                  # Check if dependency exists in charts/
+                  status="❌ Missing"
+                  if [[ -d "charts" ]]; then
+                    if ls charts/*.tgz 2>/dev/null | grep -q "$dep_name" || [[ -d "charts/$dep_name" ]]; then
+                      status="✅ Present"
+                    fi
+                  fi
+                  
+                  echo "| $dep_name | $dep_version | $dep_repo | $status |" >> $GITHUB_STEP_SUMMARY
+                fi
+              done < <(yq '.dependencies[]' Chart.yaml)
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "ℹ️ No dependencies defined for ${{ matrix.chart }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Check for outdated dependencies
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          
+          if [[ -f "Chart.yaml" ]]; then
+            deps_count=$(yq '.dependencies // [] | length' Chart.yaml)
+            if [[ "$deps_count" -gt 0 ]]; then
+              echo "## Dependency Version Check" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              outdated_found=false
+              
+              while IFS= read -r line; do
+                if [[ -n "$line" ]]; then
+                  dep_name=$(echo "$line" | yq '.name')
+                  dep_version=$(echo "$line" | yq '.version')
+                  dep_repo=$(echo "$line" | yq '.repository')
+                  
+                  if [[ "$dep_repo" != "\"\"" && "$dep_repo" != "null" ]]; then
+                    # Extract repo name from URL for known repositories
+                    repo_name=""
+                    case "$dep_repo" in
+                      *"charts.jetstack.io"*)
+                        repo_name="jetstack"
+                        ;;
+                      *"kubernetes.github.io/ingress-nginx"*)
+                        repo_name="ingress-nginx"
+                        ;;
+                      *"prometheus-community.github.io"*)
+                        repo_name="prometheus-community"
+                        ;;
+                      *"grafana.github.io"*)
+                        repo_name="grafana"
+                        ;;
+                      *"charts.bitnami.com"*)
+                        repo_name="bitnami"
+                        ;;
+                    esac
+                    
+                    if [[ -n "$repo_name" ]]; then
+                      echo "Checking $dep_name from $repo_name..."
+                      latest_version=$(helm search repo "$repo_name/$dep_name" --output json | jq -r '.[0].version // "unknown"')
+                      
+                      if [[ "$latest_version" != "unknown" && "$latest_version" != "$dep_version" ]]; then
+                        echo "⚠️  **$dep_name**: Current: $dep_version, Latest: $latest_version" >> $GITHUB_STEP_SUMMARY
+                        outdated_found=true
+                      else
+                        echo "✅ **$dep_name**: Up to date ($dep_version)" >> $GITHUB_STEP_SUMMARY
+                      fi
+                    fi
+                  fi
+                fi
+              done < <(yq '.dependencies[]' Chart.yaml)
+              
+              if [[ "$outdated_found" == true ]]; then
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "🔄 Consider updating outdated dependencies by modifying Chart.yaml and running \`helm dependency update\`" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          fi
+
+      - name: Validate Chart.lock consistency
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          
+          if [[ -f "Chart.yaml" ]]; then
+            deps_count=$(yq '.dependencies // [] | length' Chart.yaml)
+            if [[ "$deps_count" -gt 0 ]]; then
+              echo "## Chart.lock Validation" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              if [[ ! -f "Chart.lock" ]]; then
+                echo "❌ **Chart.lock missing** - Run \`helm dependency update\` to generate" >> $GITHUB_STEP_SUMMARY
+                exit 1
+              fi
+              
+              # Check if Chart.lock is consistent with Chart.yaml
+              chart_deps=$(yq '.dependencies[].name' Chart.yaml | sort)
+              lock_deps=$(yq '.dependencies[].name' Chart.lock 2>/dev/null | sort)
+              
+              if [[ "$chart_deps" != "$lock_deps" ]]; then
+                echo "❌ **Chart.lock inconsistent** with Chart.yaml - Run \`helm dependency update\`" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "**Chart.yaml dependencies:** $chart_deps" >> $GITHUB_STEP_SUMMARY
+                echo "**Chart.lock dependencies:** $lock_deps" >> $GITHUB_STEP_SUMMARY
+                exit 1
+              else
+                echo "✅ **Chart.lock is consistent** with Chart.yaml" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          fi
+
+      - name: Build dependency validation
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          
+          echo "## Dependency Build Test" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ -f "Chart.yaml" ]]; then
+            deps_count=$(yq '.dependencies // [] | length' Chart.yaml)
+            if [[ "$deps_count" -gt 0 ]]; then
+              echo "Building dependencies for ${{ matrix.chart }}..."
+              
+              # Clean existing dependencies
+              rm -rf charts/ Chart.lock 2>/dev/null || true
+              
+              # Build dependencies
+              if helm dependency build; then
+                echo "✅ **Dependency build successful**" >> $GITHUB_STEP_SUMMARY
+                
+                # Verify all dependencies were downloaded
+                missing_deps=""
+                while IFS= read -r dep_name; do
+                  if [[ -n "$dep_name" ]]; then
+                    found=false
+                    for chart_file in charts/*.tgz; do
+                      if [[ -f "$chart_file" && "$chart_file" == *"$dep_name"* ]]; then
+                        found=true
+                        break
+                      fi
+                    done
+                    for chart_dir in charts/*/; do
+                      if [[ -d "$chart_dir" && "$(basename "$chart_dir")" == "$dep_name" ]]; then
+                        found=true
+                        break
+                      fi
+                    done
+                    if [[ "$found" == false ]]; then
+                      missing_deps="$missing_deps $dep_name"
+                    fi
+                  fi
+                done < <(yq '.dependencies[].name' Chart.yaml)
+                
+                if [[ -n "$missing_deps" ]]; then
+                  echo "❌ **Missing dependencies after build:**$missing_deps" >> $GITHUB_STEP_SUMMARY
+                  exit 1
+                fi
+              else
+                echo "❌ **Dependency build failed**" >> $GITHUB_STEP_SUMMARY
+                exit 1
+              fi
+            else
+              echo "ℹ️ **No dependencies to build**" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+  create-issue:
+    runs-on: ubuntu-latest
+    needs: dependency-audit
+    if: failure()
+    steps:
+      - name: Create dependency issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Helm Chart Dependency Issues Detected - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            ## Dependency Check Failed
+            
+            The automated dependency check has detected issues with one or more Helm charts.
+            
+            **Failed job:** ${{ github.run_id }}
+            **Workflow:** ${{ github.workflow }}
+            **Trigger:** ${{ github.event_name }}
+            
+            ### Action Required
+            
+            1. Review the workflow logs for specific dependency issues
+            2. Update Chart.yaml files as needed
+            3. Run \`helm dependency update\` for affected charts
+            4. Commit and push the updated Chart.lock files
+            
+            ### Charts that may be affected:
+            - cert-manager
+            - ingress-nginx  
+            - kube-prometheus-stack
+            - n8n
+            - grafana-prometheus-stack
+            
+            This issue was automatically created by the dependency check workflow.
+            `;
+            
+            // Check if similar issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['dependencies', 'helm']
+            });
+            
+            const existingIssue = issues.data.find(issue => 
+              issue.title.includes('Helm Chart Dependency Issues')
+            );
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['dependencies', 'helm', 'automated']
+              });
+            }
