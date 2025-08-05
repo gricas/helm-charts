@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'helm/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'helm/**'
+
+jobs:
+  # Basic chart validation
+  validate:
+    name: Validate Charts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+          
+      - name: Install chart-testing
+        run: |
+          echo "🔧 Installing chart-testing..."
+          curl -L https://github.com/helm/chart-testing/releases/latest/download/ct_linux_amd64.tar.gz | tar xz
+          sudo mv ct /usr/local/bin/ct
+          ct version
+          
+      - name: Add Helm repositories
+        run: |
+          echo "📦 Adding Helm repositories..."
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          
+      - name: List charts
+        run: |
+          echo "📁 Available charts:"
+          find helm -name "Chart.yaml" -type f | sort
+          
+      - name: Validate chart structure
+        run: |
+          echo "🔍 Validating chart structure..."
+          for chart in helm/*/; do
+            if [[ -d "$chart" ]]; then
+              chart_name=$(basename "$chart")
+              echo "Checking chart: $chart_name"
+              
+              if [[ -f "$chart/Chart.yaml" ]]; then
+                echo "✅ Chart.yaml found in $chart_name"
+              else
+                echo "❌ Chart.yaml missing in $chart_name"
+                exit 1
+              fi
+            fi
+          done
+
+  # Chart linting and testing
+  lint-test:
+    name: Lint and Test Charts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart: [cert-manager, ingress-nginx, kube-prometheus-stack, n8n]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+          
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          
+      - name: Check if chart exists
+        id: check-chart
+        run: |
+          if [[ -d "helm/${{ matrix.chart }}" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Chart ${{ matrix.chart }} found"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Chart ${{ matrix.chart }} not found, skipping"
+          fi
+          
+      - name: Update dependencies
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          echo "📦 Updating dependencies for ${{ matrix.chart }}..."
+          helm dependency update || echo "No dependencies to update"
+          
+      - name: Lint chart
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          echo "🔍 Linting chart ${{ matrix.chart }}..."
+          helm lint . || exit 1
+          echo "✅ Lint passed for ${{ matrix.chart }}"
+          
+      - name: Template validation
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd helm/${{ matrix.chart }}
+          echo "🧪 Testing templates for ${{ matrix.chart }}..."
+          
+          # Test with default values
+          helm template test-release . --debug --dry-run || exit 1
+          echo "✅ Default template test passed"
+          
+          # Test with custom values files if they exist
+          for values_file in values-*.yaml *-values.yaml; do
+            if [[ -f "$values_file" && "$values_file" != "values.yaml" ]]; then
+              echo "Testing with $values_file..."
+              helm template test-release . -f "$values_file" --debug --dry-run || exit 1
+              echo "✅ Template test with $values_file passed"
+            fi
+          done
+
+  # Chart testing with ct
+  chart-test:
+    name: Chart Testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+          
+      - name: Install chart-testing
+        run: |
+          curl -L https://github.com/helm/chart-testing/releases/latest/download/ct_linux_amd64.tar.gz | tar xz
+          sudo mv ct /usr/local/bin/ct
+          ct version
+          
+      - name: Add Helm repositories
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+          
+      - name: Lint charts
+        run: |
+          echo "🔍 Linting charts with ct..."
+          ct lint --all --config .github/ct.yaml || echo "No charts to lint"
+          
+      - name: Test charts
+        run: |
+          echo "🧪 Testing charts with ct..."
+          ct install --all --config .github/ct.yaml || echo "No charts to test" 

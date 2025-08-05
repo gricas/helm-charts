@@ -1,0 +1,38 @@
+# Linting configuration for chart-testing
+# This file configures the linting rules for Helm charts
+
+# Chart.yaml validation
+chart-yaml-schema-version: v2
+
+# Template validation
+validate-templates: true
+
+# YAML validation
+validate-yaml: true
+
+# Kubernetes API validation
+validate-kubernetes: true
+
+# Helm lint rules
+helm-lint-rules:
+  - no-tabs
+  - no-trailing-spaces
+  - no-empty-lines-at-end-of-file
+
+# Template linting
+template-lint-rules:
+  - no-tabs
+  - no-trailing-spaces
+  - no-empty-lines-at-end-of-file
+
+# Values file validation
+values-schema: true
+
+# Dependency validation
+dependency-validation: true
+
+# Security scanning
+security-scan: false  # Disable for now to avoid false positives
+
+# Documentation validation
+docs-validation: false  # Disable for now to avoid false positives 
