@@ -1,0 +1,234 @@
+# Default values for ingress-nginx wrapper chart
+# This is a wrapper around the official ingress-nginx Helm chart
+
+global:
+  imageRegistry: registry.k8s.io
+
+# ingress-nginx configuration (official chart values)
+ingress-nginx:
+  enabled: true
+
+  # Override the namespace where resources are deployed
+  namespaceOverride: ""
+
+  controller:
+    name: controller
+
+    image:
+      registry: registry.k8s.io
+      image: ingress-nginx/controller
+      tag: "v1.13.0"
+      digest: sha256:dc75a7baec7a3b827a5d7ab0acd10ab507904c7dad692365b3e3b596eca1afd2
+      pullPolicy: IfNotPresent
+
+    # Default to ClusterIP for internal usage
+    # Change to LoadBalancer or NodePort for external access
+    service:
+      type: LoadBalancer
+      # For development/testing, use:
+      # type: NodePort
+
+    # Enable metrics for monitoring
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        interval: 30s
+        scrapeTimeout: 30s
+
+    # Default ingress class configuration
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: true
+      controllerValue: "k8s.io/ingress-nginx"
+
+    # Security and performance configurations
+    config:
+      # SSL/TLS Security
+      ssl-protocols: "TLSv1.2 TLSv1.3"
+      ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-RSA-AES128-GCM-SHA256,ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384"
+
+      # Security headers
+      enable-real-ip: "true"
+      forwarded-for-header: "X-Forwarded-For"
+      compute-full-forwarded-for: "true"
+      use-forwarded-headers: "true"
+
+      # Hide nginx version
+      server-tokens: "false"
+
+      # Performance tuning
+      worker-processes: "auto"
+      max-worker-connections: "16384"
+      worker-connections: "16384"
+
+      # Logging
+      log-format-escape-json: "true"
+
+      # Client settings
+      client-body-buffer-size: "16k"
+      client-body-timeout: "60"
+      client-header-timeout: "60"
+
+    # Resource limits and requests
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    # Pod security context
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 101
+      runAsGroup: 82
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
+        add:
+          - NET_BIND_SERVICE
+      readOnlyRootFilesystem: false
+
+    # Replica count (ignored if autoscaling is enabled)
+    replicaCount: 1
+
+    # Autoscaling configuration
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+
+    # Pod disruption budget
+    podDisruptionBudget:
+      enabled: false
+      minAvailable: 1
+
+    # Node selector and tolerations
+    nodeSelector:
+      kubernetes.io/os: linux
+
+    tolerations: []
+
+    affinity: {}
+
+    # Additional annotations for the controller pods
+    podAnnotations: {}
+
+    # Additional labels for the controller pods
+    podLabels: {}
+
+    # Admission webhooks
+    admissionWebhooks:
+      enabled: true
+      failurePolicy: Fail
+      timeoutSeconds: 10
+
+      # Certificate management for cert-manager integration
+      certManager:
+        enabled: false
+        admissionCert:
+          duration: 8760h # 365 days
+        rootCert:
+          duration: 8760h # 365 days
+
+      # Patch webhook jobs
+      patch:
+        enabled: true
+        image:
+          registry: registry.k8s.io
+          image: ingress-nginx/kube-webhook-certgen
+          tag: "v1.4.4"
+          pullPolicy: IfNotPresent
+
+        # Job resource limits
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+
+  # Default backend (optional)
+  defaultBackend:
+    enabled: false
+    name: defaultbackend
+    image:
+      registry: registry.k8s.io
+      image: defaultbackend-amd64
+      tag: "1.5"
+
+    service:
+      type: ClusterIP
+
+    resources:
+      limits:
+        cpu: 10m
+        memory: 20Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+
+# Monitoring configuration (when using Prometheus)
+monitoring:
+  enabled: true
+
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: true
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 30s
+    labels: {}
+
+  # PrometheusRule for alerting
+  prometheusRule:
+    enabled: false
+    namespace: ""
+    labels: {}
+    rules:
+      - alert: IngressNginxControllerDown
+        expr: up{job="ingress-nginx-controller-metrics"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ingress NGINX Controller is down"
+          description: "The Ingress NGINX Controller has been down for more than 5 minutes."
+
+      - alert: IngressNginxHighErrorRate
+        expr: |
+          (
+            sum(rate(nginx_ingress_controller_requests{status=~"5.."}[5m]))
+            /
+            sum(rate(nginx_ingress_controller_requests[5m]))
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Ingress NGINX"
+          description: "Error rate is above 5% for the last 5 minutes."
+
+# Network policies (for enhanced security)
+networkPolicy:
+  enabled: false
+  ingress:
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443
