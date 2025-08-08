@@ -1,198 +1,71 @@
-# n8n Helm Chart
+# n8n-helm
 
-A Helm chart for deploying n8n workflow automation platform to Kubernetes.
+![Version: 0.1.2](https://img.shields.io/badge/Version-0.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
 
-## Overview
+A Helm chart for Kubernetes
 
-n8n is a workflow automation platform that allows you to connect different services and automate tasks. This Helm chart provides a production-ready deployment of n8n on Kubernetes with optional PostgreSQL database support.
+## Requirements
 
-## Chart Details
+| Repository | Name | Version |
+|------------|------|---------|
+| https://charts.bitnami.com/bitnami | postgresql | 16.7.21 |
 
-- **Chart Name**: n8n-helm
-- **Version**: 0.1.0
-- **App Version**: 0.1.0
-- **n8n Image**: n8nio/n8n:latest
+## Values
 
-## Prerequisites
-
-- Kubernetes 1.19+
-- Helm 3.x
-- PV provisioner support in the underlying infrastructure (for persistent storage)
-
-## Installation
-
-### Quick Start
-
-```bash
-helm install n8n-release .
-```
-
-### With Custom Values
-
-```bash
-helm install n8n-release . -f my-values.yaml
-```
-
-### Using PostgreSQL Database
-
-```bash
-helm install n8n-release . --set postgresql.enabled=true --set n8n.database.type=postgresdb
-```
-
-## Configuration
-
-### Key Configuration Options
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `image.repository` | n8n image repository | `n8nio/n8n` |
-| `image.tag` | n8n image tag | `latest` |
-| `replicaCount` | Number of n8n replicas | `1` |
-| `service.type` | Kubernetes service type | `NodePort` |
-| `service.port` | Service port | `5678` |
-| `service.nodePort` | NodePort for external access | `30678` |
-| `persistence.enabled` | Enable persistent storage | `true` |
-| `persistence.size` | Storage size | `5Gi` |
-| `n8n.database.type` | Database type (sqlite/postgresdb) | `sqlite` |
-| `n8n.webhookUrl` | External webhook URL | `http://n8n.local:$NODEPORT` |
-| `postgresql.enabled` | Enable PostgreSQL dependency | `false` |
-
-### Database Configuration
-
-#### SQLite (Default)
-```yaml
-n8n:
-  database:
-    type: "sqlite"
-```
-
-#### PostgreSQL
-```yaml
-n8n:
-  database:
-    type: "postgresdb"
-    host: "postgresql"
-    port: 5432
-    database: "n8n"
-    username: "n8n"
-    password: "password"
-
-postgresql:
-  enabled: true
-  auth:
-    database: "n8n"
-    username: "n8n"
-    password: "n8npassword"
-```
-
-### Ingress Configuration
-
-```yaml
-ingress:
-  enabled: true
-  className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: n8n.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: n8n-tls
-      hosts:
-        - n8n.example.com
-```
-
-### Resource Configuration
-
-```yaml
-resources:
-  limits:
-    cpu: 1000m
-    memory: 2Gi
-  requests:
-    cpu: 500m
-    memory: 1024Mi
-```
-
-## Accessing n8n
-
-### NodePort (Default)
-The chart exposes n8n via NodePort on port 30678 by default:
-```bash
-http://<node-ip>:30678
-```
-
-### Port Forwarding
-```bash
-kubectl port-forward svc/n8n-release 5678:5678
-```
-Then access: http://localhost:5678
-
-### Ingress
-Configure ingress settings in values.yaml for external domain access.
-
-## Persistence
-
-By default, the chart creates a PersistentVolumeClaim with 5Gi storage mounted at `/home/node/.n8n`. This stores:
-- Workflow data
-- Credentials
-- Logs
-- SQLite database (if using SQLite)
-
-## Security
-
-- Runs as non-root user (UID 1000)
-- Uses security contexts for enhanced security
-- Supports service account creation
-- Credentials stored in Kubernetes secrets
-
-## Upgrading
-
-```bash
-helm upgrade n8n-release .
-```
-
-## Uninstalling
-
-```bash
-helm uninstall n8n-release
-```
-
-**Note**: This will not delete the PersistentVolumeClaim. To delete it:
-```bash
-kubectl delete pvc -l app.kubernetes.io/name=n8n-helm
-```
-
-## Troubleshooting
-
-### Check Pod Status
-```bash
-kubectl get pods -l app.kubernetes.io/name=n8n-helm
-```
-
-### View Logs
-```bash
-kubectl logs -l app.kubernetes.io/name=n8n-helm
-```
-
-### Debug Configuration
-```bash
-helm template n8n-release . --debug
-```
-
-### Common Issues
-
-1. **Pod stuck in Pending**: Check if PVC can be bound to a PV
-2. **Database connection issues**: Verify database credentials and connectivity
-3. **Webhook issues**: Ensure webhookUrl is accessible from external services
-
-## Dependencies
-
-- **PostgreSQL**: Optional dependency from Bitnami (version 16.7.21)
-
-## Support
-
-For n8n specific issues, refer to the [n8n documentation](https://docs.n8n.io/).
-For chart issues, check the templates and values configuration.
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| autoscaling.enabled | bool | `false` |  |
+| autoscaling.maxReplicas | int | `3` |  |
+| autoscaling.minReplicas | int | `1` |  |
+| autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
+| fullnameOverride | string | `""` |  |
+| image.pullPolicy | string | `"IfNotPresent"` |  |
+| image.repository | string | `"docker.n8n.io/n8nio/n8n"` |  |
+| image.tag | string | `"latest"` |  |
+| imagePullSecrets | list | `[]` |  |
+| ingress.annotations | object | `{}` |  |
+| ingress.className | string | `""` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts[0].host | string | `"n8n.local"` |  |
+| ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| ingress.tls | list | `[]` |  |
+| n8n.database.type | string | `"sqlite"` |  |
+| n8n.extraEnvVars | list | `[]` |  |
+| n8n.n8n_host | string | `"n8n.local"` |  |
+| n8n.n8n_port | int | `5678` |  |
+| n8n.n8n_protocol | string | `"http"` |  |
+| n8n.n8n_secure_cookie | bool | `false` |  |
+| n8n.timezone | string | `"UTC"` |  |
+| n8n.webhookUrl | string | `"http://n8n.local:$NODEPORT"` |  |
+| nameOverride | string | `""` |  |
+| namespace | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| persistence.accessMode | string | `"ReadWriteOnce"` |  |
+| persistence.enabled | bool | `true` |  |
+| persistence.mountPath | string | `"/home/node/.n8n"` |  |
+| persistence.size | string | `"5Gi"` |  |
+| persistence.storageClass | string | `""` |  |
+| podAnnotations | object | `{}` |  |
+| podSecurityContext.fsGroup | int | `1000` |  |
+| postgresql.auth.database | string | `"n8n"` |  |
+| postgresql.auth.password | string | `"n8npassword"` |  |
+| postgresql.auth.postgresPassword | string | `"n8npassword"` |  |
+| postgresql.auth.username | string | `"n8n"` |  |
+| postgresql.enabled | bool | `false` |  |
+| replicaCount | int | `1` |  |
+| resources.limits.cpu | string | `"1000m"` |  |
+| resources.limits.memory | string | `"2Gi"` |  |
+| resources.requests.cpu | string | `"500m"` |  |
+| resources.requests.memory | string | `"1024Mi"` |  |
+| securityContext.runAsNonRoot | bool | `true` |  |
+| securityContext.runAsUser | int | `1000` |  |
+| service.nodePort | int | `30678` |  |
+| service.port | int | `5678` |  |
+| service.targetPort | int | `5678` |  |
+| service.type | string | `"NodePort"` |  |
+| serviceAccount.annotations | object | `{}` |  |
+| serviceAccount.create | bool | `true` |  |
+| serviceAccount.name | string | `""` |  |
+| tolerations | list | `[]` |  |

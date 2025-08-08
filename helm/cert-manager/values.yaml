@@ -10,7 +10,8 @@ cert-manager:
 # ClusterIssuer configuration for Let's Encrypt
 clusterIssuers:
   # Email address for ACME registration (required)
-  email: ""
+  # Set this to your email address for Let's Encrypt notifications
+  email: "admin@example.com"
 
   # Staging issuer configuration
   staging:
