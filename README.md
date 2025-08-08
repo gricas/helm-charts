@@ -2,6 +2,10 @@
 
 This repository contains Helm charts for deploying applications to Kubernetes.
 
+## 📊 CI/CD Status
+
+[![CI](https://github.com/gricas/charts/actions/workflows/ci.yml/badge.svg)](https://github.com/gricas/charts/actions/workflows/ci.yml)
+
 ## Available Charts
 
 - **cert-manager** - Certificate management for Kubernetes
@@ -11,13 +15,31 @@ This repository contains Helm charts for deploying applications to Kubernetes.
 
 ## CI/CD Pipeline
 
-The repository uses GitHub Actions for continuous integration with the following workflow:
+The repository uses GitHub Actions for continuous integration with reusable workflows:
 
-### Workflow Jobs
+### Reusable Workflows
 
-1. **Validate Charts** - Basic chart structure validation
-2. **Lint and Test Charts** - Individual chart linting and template testing
-3. **Chart Testing** - Advanced testing using chart-testing (ct) tool
+1. **Setup Environment** (`.github/workflows/setup-environment.yml`)
+   - Installs Helm and chart-testing tools
+   - Adds required Helm repositories
+   - Configurable parameters for version, tools, and git fetch depth
+
+2. **Validate Chart** (`.github/workflows/validate-chart.yml`)
+   - Validates individual charts
+   - Performs linting and template testing
+   - Handles dependencies and custom values files
+
+3. **Test Charts with CT** (`.github/workflows/test-charts-ct.yml`)
+   - Advanced testing using chart-testing (ct) tool
+   - Supports lint, install, or both test types
+   - Configurable via ct.yaml
+
+### Main CI Workflow Jobs
+
+1. **Setup** - Sets up the environment using reusable workflow
+2. **Validate Charts** - Basic chart structure validation
+3. **Lint and Test Charts** - Individual chart validation using reusable workflow
+4. **Chart Testing** - Advanced testing using reusable workflow
 
 ### What Gets Tested
 
@@ -51,7 +73,9 @@ git clone <repository-url>
 cd charts
 
 # Install chart-testing
-curl -L https://github.com/helm/chart-testing/releases/latest/download/ct_linux_amd64.tar.gz | tar xz
+CT_VERSION=$(curl -s https://api.github.com/repos/helm/chart-testing/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+echo "Installing chart-testing version: $CT_VERSION"
+curl -L "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/ct_linux_amd64.tar.gz" | tar xz
 sudo mv ct /usr/local/bin/ct
 
 # Add required Helm repositories
@@ -100,10 +124,37 @@ helm/chart-name/
 
 ### CI/CD Best Practices
 
-1. **Conditional execution** - Jobs only run when needed
-2. **Clear error messages** - Easy to understand failures
-3. **Matrix testing** - Test each chart individually
-4. **Graceful failures** - Don't fail the entire pipeline for one chart
+1. **Reusable workflows** - Common tasks are modularized
+2. **Conditional execution** - Jobs only run when needed
+3. **Clear error messages** - Easy to understand failures
+4. **Matrix testing** - Test each chart individually
+5. **Graceful failures** - Don't fail the entire pipeline for one chart
+6. **DRY principle** - No code duplication across workflows
+
+### Using Reusable Workflows
+
+You can call these workflows from other repositories or workflows:
+
+```yaml
+jobs:
+  setup:
+    uses: ./.github/workflows/setup-environment.yml
+    with:
+      helm-version: '3.14.0'
+      install-ct: true
+
+  validate:
+    uses: ./.github/workflows/validate-chart.yml
+    with:
+      chart-name: my-chart
+      chart-path: helm/my-chart
+
+  test:
+    uses: ./.github/workflows/test-charts-ct.yml
+    with:
+      config-file: .github/ct.yaml
+      test-type: both
+```
 
 ### Troubleshooting
 
@@ -147,4 +198,3 @@ The CI pipeline will automatically test your changes.
 For issues and questions related to specific charts, please refer to the individual chart documentation in their respective directories.
 
 For CI/CD issues, check the GitHub Actions logs and ensure all prerequisites are met.
-

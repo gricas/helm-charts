@@ -1,0 +1,96 @@
+name: Validate Chart
+
+on:
+  workflow_call:
+    inputs:
+      chart-name:
+        description: 'Name of the chart to validate'
+        required: true
+        type: string
+      chart-path:
+        description: 'Path to the chart directory'
+        required: true
+        type: string
+      helm-version:
+        description: 'Helm version to use'
+        required: false
+        default: '3.18.4'
+        type: string
+    outputs:
+      chart-exists:
+        description: 'Whether the chart exists'
+        value: ${{ jobs.validate.outputs.chart-exists }}
+      validation-passed:
+        description: 'Whether validation passed'
+        value: ${{ jobs.validate.outputs.validation-passed }}
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup-environment.yml
+    with:
+      helm-version: ${{ inputs.helm-version }}
+      install-ct: false
+      fetch-depth: 0
+
+  validate:
+    name: Validate Chart
+    runs-on: ubuntu-latest
+    needs: setup
+    outputs:
+      chart-exists: ${{ steps.check-chart.outputs.exists }}
+      validation-passed: ${{ steps.validate-chart.outputs.passed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if chart exists
+        id: check-chart
+        run: |
+          if [[ -d "${{ inputs.chart-path }}" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Chart ${{ inputs.chart-name }} found at ${{ inputs.chart-path }}"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Chart ${{ inputs.chart-name }} not found at ${{ inputs.chart-path }}, skipping"
+          fi
+
+      - name: Update dependencies
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd ${{ inputs.chart-path }}
+          echo "📦 Updating dependencies for ${{ inputs.chart-name }}..."
+          helm dependency update || echo "No dependencies to update"
+
+      - name: Lint chart
+        id: validate-chart
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd ${{ inputs.chart-path }}
+          echo "🔍 Linting chart ${{ inputs.chart-name }}..."
+          if helm lint .; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Lint passed for ${{ inputs.chart-name }}"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+            echo "❌ Lint failed for ${{ inputs.chart-name }}"
+            exit 1
+          fi
+
+      - name: Template validation
+        if: steps.check-chart.outputs.exists == 'true'
+        run: |
+          cd ${{ inputs.chart-path }}
+          echo "🧪 Testing templates for ${{ inputs.chart-name }}..."
+
+          # Test with default values
+          helm template test-release . --debug --dry-run || exit 1
+          echo "✅ Default template test passed"
+
+          # Test with custom values files if they exist
+          for values_file in values-*.yaml *-values.yaml; do
+            if [[ -f "$values_file" && "$values_file" != "values.yaml" ]]; then
+              echo "Testing with $values_file..."
+              helm template test-release . -f "$values_file" --debug --dry-run || exit 1
+              echo "✅ Template test with $values_file passed"
+            fi
+          done

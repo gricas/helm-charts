@@ -1,0 +1,50 @@
+name: Test Charts with CT
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        description: 'Path to ct configuration file'
+        required: false
+        default: '.github/ct.yaml'
+        type: string
+      helm-version:
+        description: 'Helm version to use'
+        required: false
+        default: '3.18.4'
+        type: string
+      test-type:
+        description: 'Type of test to run (lint, install, or both)'
+        required: false
+        default: 'both'
+        type: string
+
+jobs:
+  setup:
+    uses: ./.github/workflows/setup-environment.yml
+    with:
+      helm-version: ${{ inputs.helm-version }}
+      install-ct: true
+      fetch-depth: 0
+
+  test:
+    name: Test Charts with CT
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lint charts
+        if: inputs.test-type == 'lint' || inputs.test-type == 'both'
+        run: |
+          echo "🔍 Linting charts with ct..."
+          ct lint --all --config ${{ inputs.config-file }} || echo "No charts to lint"
+
+      - name: Test charts
+        if: inputs.test-type == 'install' || inputs.test-type == 'both'
+        run: |
+          echo "🧪 Testing charts with ct..."
+          ct install --all --config ${{ inputs.config-file }} || echo "No charts to test"

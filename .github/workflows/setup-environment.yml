@@ -1,0 +1,66 @@
+name: Setup Environment
+
+on:
+  workflow_call:
+    inputs:
+      helm-version:
+        description: 'Helm version to install'
+        required: false
+        default: '3.18.4'
+        type: string
+      install-ct:
+        description: 'Whether to install chart-testing tool'
+        required: false
+        default: true
+        type: boolean
+      fetch-depth:
+        description: 'Git fetch depth for checkout'
+        required: false
+        default: 0
+        type: number
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      helm-version: ${{ steps.setup-helm.outputs.helm-version }}
+      ct-version: ${{ steps.install-ct.outputs.ct-version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+
+      - name: Set up Helm
+        id: setup-helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ inputs.helm-version }}
+
+      - name: Install chart-testing
+        id: install-ct
+        if: inputs.install-ct
+        run: |
+          echo "🔧 Installing chart-testing..."
+          # Get the latest version
+          CT_VERSION=$(curl -s https://api.github.com/repos/helm/chart-testing/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "Installing chart-testing version: $CT_VERSION"
+
+          # Download and install
+          curl -L "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/ct_linux_amd64.tar.gz" | tar xz
+          sudo mv ct /usr/local/bin/ct
+          ct version
+
+          # Set output for other jobs
+          echo "ct-version=$CT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Add Helm repositories
+        run: |
+          echo "📦 Adding Helm repositories..."
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
