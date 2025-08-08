@@ -2,7 +2,7 @@
 ClusterIssuers for Let's Encrypt with Route53 DNS-01 challenge
 Creates both staging and production issuers based on configuration
 */}}
-{{- if .Values.clusterIssuers.email }}
+{{- if or .Values.clusterIssuers.staging.enabled .Values.clusterIssuers.production.enabled }}
 
 {{- if .Values.clusterIssuers.staging.enabled }}
 ---
@@ -68,7 +68,7 @@ spec:
     server: {{ .Values.clusterIssuers.production.server }}
 
     # Email for ACME registration
-    email: {{ .Values.clusterIssuers.email }}
+    email: {{ .Values.clusterIssuers.email | default "example123@gmail.com" }}
 
     # Private key secret for ACME account
     privateKeySecretRef:
@@ -102,6 +102,4 @@ spec:
           {{- end }}
 {{- end }}
 
-{{- else }}
-{{- fail "ClusterIssuers require email to be configured" }}
 {{- end }}

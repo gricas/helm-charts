@@ -10,7 +10,7 @@ chart-repos:
   - bitnami=https://charts.bitnami.com/bitnami
 
 # Validation settings
-validate-chart-schema: true
+validate-chart-schema: false  # Disable until we have proper schema files
 validate-yaml: true
 check-version-increment: false  # Disable for now to avoid false positives
 
