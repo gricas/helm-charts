@@ -75,7 +75,9 @@ cd charts
 # Install chart-testing
 CT_VERSION=$(curl -s https://api.github.com/repos/helm/chart-testing/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 echo "Installing chart-testing version: $CT_VERSION"
-curl -L "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/ct_linux_amd64.tar.gz" | tar xz
+CT_VERSION_NUM=$(echo "$CT_VERSION" | sed 's/^v//')
+echo "Version number: $CT_VERSION_NUM"
+curl -L "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/chart-testing_${CT_VERSION_NUM}_linux_amd64.tar.gz" | tar xz
 sudo mv ct /usr/local/bin/ct
 
 # Add required Helm repositories
