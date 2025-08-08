@@ -59,11 +59,14 @@ The CI runs on:
 
 ## Local Development
 
+For detailed development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
 ### Prerequisites
 
-- Helm 3.14.0+
+- Helm 3.18.4+
 - chart-testing (ct) tool
 - kubectl (for testing)
+- pre-commit (for code quality)
 
 ### Setup
 

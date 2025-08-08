@@ -17,14 +17,14 @@ spec:
   acme:
     # ACME staging server URL
     server: {{ .Values.clusterIssuers.staging.server }}
-    
+
     # Email for ACME registration
-    email: {{ .Values.clusterIssuers.email }}
-    
+    email: {{ .Values.clusterIssuers.email | default "example123@gmail.com" }}
+
     # Private key secret for ACME account
     privateKeySecretRef:
       name: {{ .Values.clusterIssuers.staging.name }}-private-key
-    
+
     # DNS-01 challenge solver using Route53
     solvers:
     - dns01:
@@ -66,14 +66,14 @@ spec:
   acme:
     # ACME production server URL
     server: {{ .Values.clusterIssuers.production.server }}
-    
+
     # Email for ACME registration
     email: {{ .Values.clusterIssuers.email }}
-    
+
     # Private key secret for ACME account
     privateKeySecretRef:
       name: {{ .Values.clusterIssuers.production.name }}-private-key
-    
+
     # DNS-01 challenge solver using Route53
     solvers:
     - dns01:

@@ -43,21 +43,18 @@ jobs:
         if: inputs.install-ct
         run: |
           echo "🔧 Installing chart-testing..."
-          # Get the latest version
-          CT_VERSION=$(curl -s https://api.github.com/repos/helm/chart-testing/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "Installing chart-testing version: $CT_VERSION"
 
-          # Extract version number without 'v' prefix for filename
-          CT_VERSION_NUM=$(echo "$CT_VERSION" | sed 's/^v//')
-          echo "Version number: $CT_VERSION_NUM"
+          # Use Go to install chart-testing (works on all architectures)
+          go install github.com/helm/chart-testing/v3/ct@latest
 
-          # Download and install with correct filename
-          curl -L "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/chart-testing_${CT_VERSION_NUM}_linux_amd64.tar.gz" | tar xz
-          sudo mv ct /usr/local/bin/ct
-          ct version
+          # Add to PATH
+          echo '$HOME/go/bin' >> $GITHUB_PATH
+
+          # Verify installation
+          $HOME/go/bin/ct version
 
           # Set output for other jobs
-          echo "ct-version=$CT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "ct-version=latest" >> "$GITHUB_OUTPUT"
 
       - name: Add Helm repositories
         run: |
