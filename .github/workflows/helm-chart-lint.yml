@@ -46,11 +46,10 @@ jobs:
     strategy:
       matrix:
         chart-path:
-          - helm/cert-manager
-          - helm/ingress-nginx
-          - helm/kube-prometheus-stack
-          - helm/n8n
-          - helm/grafana-prometheus-stack
+          - chart/cert-manager
+          - chart/ingress-nginx
+          - chart/n8n
+          - chart/grafana-observability
     steps:
       - name: Checkout
         uses: actions/checkout@v4
