@@ -2,7 +2,6 @@
 *production*
 *dev*
 *staging*
-grafana*
 sonarQube
 echo
 *.un~
