@@ -76,13 +76,17 @@ git clone <repository-url>
 cd charts
 
 # Install chart-testing
-CT_VERSION=$(curl -s https://api.github.com/repos/helm/chart-testing/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-echo "Installing chart-testing version: $CT_VERSION"
-CT_VERSION_NUM=$(echo "$CT_VERSION" | sed 's/^v//')
-echo "Version number: $CT_VERSION_NUM"
-curl -L "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/chart-testing_${CT_VERSION_NUM}_linux_amd64.tar.gz" | tar xz
-sudo mv ct /usr/local/bin/ct
+# Install Go first (see above)
+go install github.com/helm/chart-testing/v3/ct@latest
 
+# Add to PATH if not already there
+if ! grep -q "$HOME/go/bin" ~/.bashrc; then
+    echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
+    source ~/.bashrc
+fi
+
+# Verify installation
+ct version
 # Add required Helm repositories
 helm repo add jetstack https://charts.jetstack.io
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -96,7 +100,7 @@ helm repo update
 
 ```bash
 # Test a specific chart
-cd helm/cert-manager
+cd charts/cert-manager
 helm lint .
 helm template test-release . --debug --dry-run
 
