@@ -4,7 +4,7 @@ This repository contains Helm charts for deploying applications to Kubernetes.
 
 ## 📊 CI/CD Status
 
-[![CI](https://github.com/gricas/charts/actions/workflows/ci.yml/badge.svg)](https://github.com/gricas/charts/actions/workflows/ci.yml)
+[![CI](https://github.com/gricas/helm-charts/actions/workflows/ci.yml/badge.svg)](https://github.com/gricas/helm-charts/actions/workflows/ci.yml)
 
 ## Available Charts
 
