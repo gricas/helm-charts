@@ -5,7 +5,7 @@ replicaCount: 1
 namespace: ""
 
 image:
-  repository: docker.n8n.io/n8nio/n8n
+  repository: docker.n8n.io/n8nio/n8n:stable
 
   pullPolicy: IfNotPresent
   tag: "latest"
@@ -13,6 +13,9 @@ image:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+
+secret:
+  create: true
 
 serviceAccount:
   create: true
