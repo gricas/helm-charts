@@ -5,7 +5,7 @@ replicaCount: 1
 namespace: ""
 
 image:
-  repository: docker.n8n.io/n8nio/n8n # TODO: change this to arm64
+  repository: docker.n8n.io/n8nio/n8n:stable
 
   pullPolicy: IfNotPresent
   tag: "latest"
