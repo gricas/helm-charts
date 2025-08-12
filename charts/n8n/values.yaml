@@ -5,10 +5,10 @@ replicaCount: 1
 namespace: ""
 
 image:
-  repository: docker.n8n.io/n8nio/n8n:stable
+  repository: docker.n8n.io/n8nio/n8n
+  tag: "stable"
 
   pullPolicy: IfNotPresent
-  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""

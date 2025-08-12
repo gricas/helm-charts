@@ -4,11 +4,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'helm/**'
+      - 'charts/**'
   pull_request:
     branches: [ main ]
     paths:
-      - 'helm/**'
+      - 'charts/**'
 
 jobs:
   detect-changes:
@@ -229,7 +229,7 @@ jobs:
 
       - name: Run security scans
         run: |
-          for chart_dir in helm/*/; do
+          for chart_dir in charts/*/; do
             if [[ -f "$chart_dir/Chart.yaml" ]]; then
               chart_name=$(basename "$chart_dir")
               echo "🔍 Scanning $chart_name for security issues..."
@@ -284,7 +284,7 @@ jobs:
       - name: Test chart installations
         run: |
           # Test lightweight charts that can run in CI
-          charts_to_test=("helm/n8n")
+          charts_to_test=("charts/n8n")
 
           for chart_path in "${charts_to_test[@]}"; do
             if [[ -f "$chart_path/Chart.yaml" ]]; then

@@ -37,7 +37,7 @@ jobs:
       - name: Validate chart structure
         run: |
           echo "🔍 Validating chart structure..."
-          for chart in helm/*/; do
+          for chart in charts/**; do
             if [[ -d "$chart" ]]; then
               chart_name=$(basename "$chart")
               echo "Checking chart: $chart_name"
@@ -60,7 +60,7 @@ jobs:
         chart: [cert-manager, ingress-nginx, grafana-observability, n8n]
     with:
       chart-name: ${{ matrix.chart }}
-      chart-path: helm/${{ matrix.chart }}
+      chart-path: charts/${{ matrix.chart }}
 
   # Chart testing with ct using reusable workflow
   chart-test:
