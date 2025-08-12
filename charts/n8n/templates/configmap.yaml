@@ -9,7 +9,7 @@ metadata:
     {{- include "n8n.labels" . | nindent 4 }}
 data:
   WEBHOOK_URL: {{ .Values.n8n.webhookUrl | quote }}
-  N8N_HOST: {{ .Values.n8n.webhookUrl | regexFind "://([^:/]+)" | regexReplaceAll "://" "" | quote }}
+  N8N_HOST: {{ .Values.n8n.webhookUrl | quote }}
   N8N_PORT: "5678"
   N8N_PROTOCOL: {{ .Values.n8n.webhookUrl | regexFind "^[^:]+" | quote }}
   GENERIC_TIMEZONE: {{ .Values.n8n.timezone | quote }}
