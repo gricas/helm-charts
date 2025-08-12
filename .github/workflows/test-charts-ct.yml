@@ -55,6 +55,12 @@ jobs:
           # Verify installation
           $HOME/go/bin/ct version
 
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: helm-test
+          kubectl_version: v1.28.0
+
       - name: Add Helm repositories
         run: |
           echo "📦 Adding Helm repositories..."
