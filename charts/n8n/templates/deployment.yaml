@@ -46,7 +46,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: n8n-secret
-                  key: db-password
+                  key: password
             {{- end }}
             {{- if .Values.n8n.extraEnvVars }}
             {{- range .Values.n8n.extraEnvVars }}
