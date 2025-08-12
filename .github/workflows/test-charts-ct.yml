@@ -37,6 +37,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ inputs.helm-version }}
+
+      - name: Install chart-testing and setup PATH
+        run: |
+          echo "🔧 Installing chart-testing..."
+
+          # Install chart-testing
+          go install github.com/helm/chart-testing/v3/ct@latest
+
+          # Add to PATH for this job
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+          # Verify installation
+          $HOME/go/bin/ct version
+
+      - name: Add Helm repositories
+        run: |
+          echo "📦 Adding Helm repositories..."
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+
       - name: Lint charts
         if: inputs.test-type == 'lint' || inputs.test-type == 'both'
         run: |
