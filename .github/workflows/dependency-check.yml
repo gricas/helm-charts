@@ -8,8 +8,8 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'helm/**/Chart.yaml'
-      - 'helm/**/Chart.lock'
+      - 'charts**/Chart.yaml'
+      - 'charts/**/Chart.lock'
 
 jobs:
   dependency-audit:
@@ -42,7 +42,7 @@ jobs:
       - name: Check chart exists
         id: check-chart
         run: |
-          if [[ -f "helm/${{ matrix.chart }}/Chart.yaml" ]]; then
+          if [[ -f "charts/${{ matrix.chart }}/Chart.yaml" ]]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -51,7 +51,7 @@ jobs:
       - name: Analyze dependencies
         if: steps.check-chart.outputs.exists == 'true'
         run: |
-          cd helm/${{ matrix.chart }}
+          cd charts/${{ matrix.chart }}
           echo "# Dependency Analysis for ${{ matrix.chart }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -90,7 +90,7 @@ jobs:
       - name: Check for outdated dependencies
         if: steps.check-chart.outputs.exists == 'true'
         run: |
-          cd helm/${{ matrix.chart }}
+          cd charts/${{ matrix.chart }}
 
           if [[ -f "Chart.yaml" ]]; then
             deps_count=$(yq '.dependencies // [] | length' Chart.yaml)
@@ -152,7 +152,7 @@ jobs:
       - name: Validate Chart.lock consistency
         if: steps.check-chart.outputs.exists == 'true'
         run: |
-          cd helm/${{ matrix.chart }}
+          cd charts/${{ matrix.chart }}
 
           if [[ -f "Chart.yaml" ]]; then
             deps_count=$(yq '.dependencies // [] | length' Chart.yaml)
@@ -184,7 +184,7 @@ jobs:
       - name: Build dependency validation
         if: steps.check-chart.outputs.exists == 'true'
         run: |
-          cd helm/${{ matrix.chart }}
+          cd charts/${{ matrix.chart }}
 
           echo "## Dependency Build Test" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -1,7 +1,7 @@
 # Chart Testing configuration for Helm charts
 target-branch: main
 chart-dirs:
-  - helm
+  - charts
 chart-repos:
   - jetstack=https://charts.jetstack.io
   - ingress-nginx=https://kubernetes.github.io/ingress-nginx
