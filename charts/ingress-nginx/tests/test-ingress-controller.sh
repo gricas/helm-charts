@@ -14,8 +14,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 TIMEOUT=120
-TEST_NAMESPACE="ingress-test"
-INGRESS_NAMESPACE="ingress-nginx"
+TEST_NAMESPACE="ingress-test-infra"
+INGRESS_NAMESPACE="ingress-nginx-infra"
 
 # Logging functions
 log_info() {
@@ -177,16 +177,6 @@ spec:
   ingressClassName: nginx
   rules:
   - host: test-ingress.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: test-echo-service
-            port:
-              number: 80
-  - host: test.example.com
     http:
       paths:
       - path: /

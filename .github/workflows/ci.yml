@@ -2,13 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
     paths:
       - 'charts/**'
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
     paths:
       - 'charts/**'
+
+permissions:
+  contents: write
 
 jobs:
   # Basic chart validation
@@ -32,7 +35,7 @@ jobs:
       - name: List charts
         run: |
           echo "📁 Available charts:"
-          find helm -name "Chart.yaml" -type f | sort
+          find charts/** -name "Chart.yaml" -type f | sort
 
       - name: Validate chart structure
         run: |
@@ -69,3 +72,8 @@ jobs:
     with:
       config-file: .github/ct.yaml
       test-type: both
+
+  chart-release:
+    name: Release Charts
+    uses: ./.github/workflows/helm-release.yml
+    needs: [validate, lint-test, chart-test]
