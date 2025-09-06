@@ -37,33 +37,33 @@ jobs:
           echo "📁 Available charts:"
           find charts/** -name "Chart.yaml" -type f | sort
 
-      # - name: Validate chart structure
-      #   run: |
-      #     echo "🔍 Validating chart structure..."
-      #     for chart in charts/**; do
-      #       if [[ -d "$chart" ]]; then
-      #         chart_name=$(basename "$chart")
-      #         echo "Checking chart: $chart_name"
+      - name: Validate chart structure
+        run: |
+          echo "🔍 Validating chart structure..."
+          for chart in charts/**; do
+            if [[ -d "$chart" ]]; then
+              chart_name=$(basename "$chart")
+              echo "Checking chart: $chart_name"
 
-      #         if [[ -f "$chart/Chart.yaml" ]]; then
-      #           echo "✅ Chart.yaml found in $chart_name"
-      #         else
-      #           echo "❌ Chart.yaml missing in $chart_name"
-      #           exit 1
-      #         fi
-      #       fi
-      #     done
+              if [[ -f "$chart/Chart.yaml" ]]; then
+                echo "✅ Chart.yaml found in $chart_name"
+              else
+                echo "❌ Chart.yaml missing in $chart_name"
+                exit 1
+              fi
+            fi
+          done
 
-  # # Chart linting and testing using reusable workflow
-  # lint-test:
-  #   name: Lint and Test Charts
-  #   uses: ./.github/workflows/validate-chart.yml
-  #   strategy:
-  #     matrix:
-  #       chart: [cert-manager, ingress-nginx, grafana-observability, n8n]
-  #   with:
-  #     chart-name: ${{ matrix.chart }}
-  #     chart-path: charts/${{ matrix.chart }}
+  # Chart linting and testing using reusable workflow
+  lint-test:
+    name: Lint and Test Charts
+    uses: ./.github/workflows/validate-chart.yml
+    strategy:
+      matrix:
+        chart: [cert-manager, ingress-nginx, grafana-observability, n8n, unbound]
+    with:
+      chart-name: ${{ matrix.chart }}
+      chart-path: charts/${{ matrix.chart }}
 
   # # Chart testing with ct using reusable workflow
   # chart-test:
