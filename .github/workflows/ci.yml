@@ -14,14 +14,6 @@ permissions:
   contents: write
 
 jobs:
-  # Basic chart validation
-  setup:
-    uses: ./.github/workflows/setup-environment.yml
-    with:
-      helm-version: '3.18.4'
-      install-ct: true
-      fetch-depth: 0
-
   # Chart linting and testing using reusable workflow
   lint-test:
     name: Lint and Test Charts
@@ -44,4 +36,4 @@ jobs:
   chart-release:
     name: Release Charts
     uses: ./.github/workflows/helm-release.yml
-    needs: [validate, lint-test, chart-test]
+    needs: [lint-test]
