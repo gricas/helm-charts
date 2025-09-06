@@ -11,11 +11,6 @@ on:
         description: 'Path to the chart directory'
         required: true
         type: string
-      helm-version:
-        description: 'Helm version to use'
-        required: false
-        default: '3.18.4'
-        type: string
     outputs:
       chart-exists:
         description: 'Whether the chart exists'

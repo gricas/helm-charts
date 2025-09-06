@@ -8,7 +8,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'charts**/Chart.yaml'
+      - 'charts/**/Chart.yaml'
       - 'charts/**/Chart.lock'
 
 jobs:
@@ -21,6 +21,7 @@ jobs:
           - ingress-nginx
           - n8n
           - grafana-observability
+          - unbound
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,6 +38,7 @@ jobs:
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo add grafana https://grafana.github.io/helm-charts
           helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add unbound https://github.com/helm/charts
           helm repo update
 
       - name: Check chart exists
@@ -268,6 +270,7 @@ jobs:
             - ingress-nginx
             - n8n
             - grafana-observability
+            - unbound
 
             This issue was automatically created by the dependency check workflow.
             `;
