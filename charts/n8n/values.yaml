@@ -6,7 +6,7 @@ namespace: ""
 
 image:
   repository: docker.n8n.io/n8nio/n8n
-  tag: "stable"
+  tag: "1.114.0"
 
   pullPolicy: IfNotPresent
 
@@ -32,10 +32,8 @@ securityContext:
   runAsUser: 1000
 
 service:
-  type: NodePort
+  type: "ClusterIP"
   port: 5678
-  targetPort: 5678
-  nodePort: 30678
 
 ingress:
   enabled: false
