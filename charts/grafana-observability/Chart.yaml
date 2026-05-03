@@ -2,7 +2,7 @@ apiVersion: v2
 name: grafana-observability
 description: Custom Prometheus monitoring stack wrapper chart
 type: application
-version: 1.0.0
+version: 1.0.1
 appVersion: "v0.90.1"
 
 dependencies:
