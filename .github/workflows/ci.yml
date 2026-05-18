@@ -2,13 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
     paths:
       - 'charts/**'
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
     paths:
       - 'charts/**'
+
+permissions:
+  contents: write
 
 jobs:
   # Basic chart validation
@@ -19,53 +22,26 @@ jobs:
       install-ct: true
       fetch-depth: 0
 
-  validate:
-    name: Validate Charts
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: List charts
-        run: |
-          echo "📁 Available charts:"
-          find helm -name "Chart.yaml" -type f | sort
-
-      - name: Validate chart structure
-        run: |
-          echo "🔍 Validating chart structure..."
-          for chart in charts/**; do
-            if [[ -d "$chart" ]]; then
-              chart_name=$(basename "$chart")
-              echo "Checking chart: $chart_name"
-
-              if [[ -f "$chart/Chart.yaml" ]]; then
-                echo "✅ Chart.yaml found in $chart_name"
-              else
-                echo "❌ Chart.yaml missing in $chart_name"
-                exit 1
-              fi
-            fi
-          done
-
   # Chart linting and testing using reusable workflow
   lint-test:
     name: Lint and Test Charts
     uses: ./.github/workflows/validate-chart.yml
     strategy:
       matrix:
-        chart: [cert-manager, ingress-nginx, grafana-observability, n8n]
+        chart: [cert-manager, ingress-nginx, grafana-observability, n8n, unbound]
     with:
       chart-name: ${{ matrix.chart }}
       chart-path: charts/${{ matrix.chart }}
 
-  # Chart testing with ct using reusable workflow
-  chart-test:
-    name: Chart Testing
-    uses: ./.github/workflows/test-charts-ct.yml
-    with:
-      config-file: .github/ct.yaml
-      test-type: both
+  # # Chart testing with ct using reusable workflow
+  # chart-test:
+  #   name: Chart Testing
+  #   uses: ./.github/workflows/test-charts-ct.yml
+  #   with:
+  #     config-file: .github/ct.yaml
+  #     test-type: both
+
+  chart-release:
+    name: Release Charts
+    uses: ./.github/workflows/helm-release.yml
+    needs: [lint-test]

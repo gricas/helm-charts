@@ -8,7 +8,6 @@ chart-repos:
   - prometheus-community=https://prometheus-community.github.io/helm-charts
   - grafana=https://grafana.github.io/helm-charts
   - bitnami=https://charts.bitnami.com/bitnami
-
 # Validation settings
 validate-chart-schema: false  # Disable until we have proper schema files
 validate-yaml: true
